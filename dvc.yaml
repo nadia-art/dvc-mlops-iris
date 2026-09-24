@@ -1,0 +1,68 @@
+stages:
+  make_data:
+    cmd: python src/make_data.py
+    deps:
+      - src/make_data.py
+    outs:
+      - data/iris_raw.csv
+
+  prepare:
+    cmd: python src/prepare.py
+    deps:
+      - data/iris_raw.csv
+      - src/prepare.py
+    params:
+      - data.test_size
+      - data.random_state
+    outs:
+      - data/processed/X_train.csv
+      - data/processed/X_test.csv
+      - data/processed/y_train.csv
+      - data/processed/y_test.csv
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - data/processed/X_train.csv
+      - data/processed/y_train.csv
+      - src/train.py
+    params:
+      - model
+    outs:
+      - models/model.pkl
+    metrics:
+      - metrics.json:
+          cache: false
+
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+      - data/processed/X_test.csv
+      - data/processed/y_test.csv
+      - models/model.pkl
+      - src/evaluate.py
+    outs:
+      - reports/classification_report.json:
+          cache: false
+    metrics:
+      - evaluation.json:
+          cache: false
+    plots:
+      - plots/confusion_matrix.json:
+          cache: false
+          template: confusion
+          x: actual
+          y: predicted
+          title: Matrice de confusion
+      - plots/feature_importance.json:
+          cache: false
+          template: bar_horizontal
+          x: importance
+          y: feature
+          title: Importance des variables
+      - plots/roc_curve.json:
+          cache: false
+          template: simple
+          x: fpr
+          y: tpr
+          title: Courbe ROC (micro-moyenne)
