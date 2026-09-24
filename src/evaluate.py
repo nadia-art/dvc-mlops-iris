@@ -71,3 +71,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    from mlflow_utils import log_to_mlflow
+    log_to_mlflow()

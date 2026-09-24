@@ -34,13 +34,14 @@ stages:
       - metrics.json:
           cache: false
 
-  evaluate:
+    evaluate:
     cmd: python src/evaluate.py
     deps:
       - data/processed/X_test.csv
       - data/processed/y_test.csv
       - models/model.pkl
       - src/evaluate.py
+      - src/mlflow_utils.py
     outs:
       - reports/classification_report.json:
           cache: false
