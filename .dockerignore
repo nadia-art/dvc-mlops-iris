@@ -1,0 +1,11 @@
+.git
+.venv
+.dvc/cache
+.dvc/tmp
+.dvc/config.local
+data/
+models/
+dvc_plots/
+rapport_html/
+__pycache__/
+*.pyc
