@@ -4,3 +4,4 @@ rapport_html/
 cml_plots/
 report.md
 report_text.md
+__pycache__/
