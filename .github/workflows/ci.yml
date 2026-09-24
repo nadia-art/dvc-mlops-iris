@@ -1,0 +1,104 @@
+name: MLOps - DVC + CML + Docker
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  pipeline:
+    name: Pipeline DVC + rapport CML
+    runs-on: ubuntu-latest
+    env:
+      # Stockage S3-compatible DagsHub (utilisé par dvc pull / dvc push)
+      AWS_ACCESS_KEY_ID: ${{ secrets.DAGSHUB_TOKEN }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.DAGSHUB_TOKEN }}
+      # Serveur MLflow DagsHub (utilisé par src/mlflow_utils.py)
+      MLFLOW_TRACKING_URI: https://dagshub.com/nadiaalahyane9/dvc-mlops-iris.mlflow
+      MLFLOW_TRACKING_USERNAME: nadiaalahyane9
+      MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Installer Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer les dépendances et CML
+        run: |
+          pip install -r requirements.txt
+          npm install -g @dvcorg/cml
+
+      - name: Récupérer les données versionnées (DagsHub)
+        run: dvc pull --allow-missing || echo "Rien à récupérer (premier lancement)"
+
+      - name: Exécuter le pipeline
+        run: |
+          dvc repro
+          dvc metrics show
+
+      - name: Envoyer données et modèle vers DagsHub
+        run: dvc push
+
+      - name: Rapport CML
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE=origin/main
+          else
+            BASE=HEAD
+          fi
+          python src/cml_plots.py "$BASE"
+          {
+            echo "## Pipeline DVC – résultats"
+            echo "Référence : \`$BASE\` – commit \`${GITHUB_SHA::7}\`"
+            echo "### Paramètres modifiés"
+            dvc params diff "$BASE" --md
+            echo "### Métriques"
+            dvc metrics diff "$BASE" --all --md
+            echo "### Visualisations"
+            echo "![Matrice de confusion](./cml_plots/confusion_matrix.png)"
+            echo "![Importance des variables](./cml_plots/feature_importance.png)"
+            echo "![Courbe ROC](./cml_plots/roc_curve.png)"
+            echo ""
+            echo "Expériences MLflow : https://dagshub.com/nadiaalahyane9/dvc-mlops-iris/experiments"
+          } > report.md
+          grep -v '^!\[' report.md >> "$GITHUB_STEP_SUMMARY"
+          cml comment create report.md || {
+            echo "Publication des images impossible : commentaire sans images"
+            grep -v '^!\[' report.md > report_text.md
+            cml comment create report_text.md
+          }
+
+      - name: Enregistrer les résultats de référence sur main
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "CI: résultats du pipeline [skip ci]" || echo "Aucun changement"
+          git push
+
+  docker:
+    name: Pipeline dans Docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v5
+
+      - name: Construire l'image
+        run: docker build -t iris-dvc-pipeline:ci .
+
+      - name: Exécuter le pipeline dans le conteneur
+        run: docker run --rm --entrypoint sh iris-dvc-pipeline:ci -c "dvc repro && dvc metrics show"
