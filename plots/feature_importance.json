@@ -1,0 +1,18 @@
+[
+  {
+    "feature": "petal length (cm)",
+    "importance": 0.45379307854941836
+  },
+  {
+    "feature": "petal width (cm)",
+    "importance": 0.4124488188404141
+  },
+  {
+    "feature": "sepal length (cm)",
+    "importance": 0.11587288933919555
+  },
+  {
+    "feature": "sepal width (cm)",
+    "importance": 0.017885213270972027
+  }
+]
