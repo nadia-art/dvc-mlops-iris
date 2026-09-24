@@ -34,7 +34,7 @@ stages:
       - metrics.json:
           cache: false
 
-    evaluate:
+  evaluate:
     cmd: python src/evaluate.py
     deps:
       - data/processed/X_test.csv
