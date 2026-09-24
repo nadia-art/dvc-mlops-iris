@@ -1,7 +1,7 @@
 model:
   type: RandomForest
-  n_estimators: 200
-  max_depth: null
+  n_estimators: 10
+  max_depth: 2
   random_state: 42
 
 data:
