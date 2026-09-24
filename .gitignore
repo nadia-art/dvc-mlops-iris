@@ -1,3 +1,6 @@
+.venv/
+dvc_plots/
+rapport_html/
 cml_plots/
 report.md
 report_text.md
